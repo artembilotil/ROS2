@@ -29,18 +29,18 @@
 
 ## 1. Правило іменування
 
-| Об'єкт | Ім'я |
-|---|---|
-| Workspace | `ros2_stud_bilotil_ws` |
-| C++ package | `stud_bilotil_cpp_pkg` |
-| Python package | `stud_bilotil_py_pkg` |
-| Node — publisher | `stud_bilotil_publisher` |
-| Node — subscriber | `stud_bilotil_subscriber` |
-| Node — монітор температури | `stud_bilotil_temperature_monitor` |
-| Node на мікроконтролері | `stud_bilotil_esp32` |
-| Topic — текстові повідомлення | `/stud_bilotil/message` |
-| Topic — температура, °C | `/stud_bilotil/temperature/celsius` |
-| Topic — температура, °F | `/stud_bilotil/temperature/fahrenheit` |
+| Об'єкт                        | Ім'я                                   |
+|-------------------------------|----------------------------------------|
+| Workspace                     | `ros2_stud_bilotil_ws`                 |
+| C++ package                   | `stud_bilotil_cpp_pkg`                 |
+| Python package                | `stud_bilotil_py_pkg`                  |
+| Node — publisher              | `stud_bilotil_publisher`               |
+| Node — subscriber             | `stud_bilotil_subscriber`              |
+| Node — монітор температури    | `stud_bilotil_temperature_monitor`     |
+| Node на мікроконтролері       | `stud_bilotil_esp32`                   |
+| Topic — текстові повідомлення | `/stud_bilotil/message`                |
+| Topic — температура, °C       | `/stud_bilotil/temperature/celsius`    |
+| Topic — температура, °F       | `/stud_bilotil/temperature/fahrenheit` |
 
 ---
 
@@ -71,25 +71,14 @@
 ### Вивід перевірки
 
 ```text
-$ printenv | grep ROS
+ros@ros:~/ros2_stud_bilotil_ws$ printenv | grep ROS
 ROS_VERSION=2
 ROS_PYTHON_VERSION=3
 ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET
 ROS_DISTRO=jazzy
 
-$ echo $AMENT_PREFIX_PATH
-/home/ros/ros2_stud_bilotil_ws/install/my_test_pkg:/opt/ros/jazzy
-```
-
-<!-- ros@ros:~/ros2_stud_bilotil_ws$ printenv | grep ROS
-ROS_VERSION=2
-ROS_PYTHON_VERSION=3
-ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET
-ROS_DISTRO=jazzy
-ros@ros:~/ros2_stud_bilotil_ws$ echo $AMENT_PREFIX_PATH
+ros@ros:~/ros2_stud_bilotil_ws$echo$AMENT_PREFIX_PATH
 /home/ros/ros2_stud_bilotil_ws/install/stud_bilotil_py_pkg:/home/ros/ros2_stud_bilotil_ws/install/stud_bilotil_cpp_pkg:/opt/ros/jazzy
-ros@ros:~/ros2_stud_bilotil_ws$ 
- -->
 
 ### Чому `install/setup.bash` підключається після `/opt/ros/jazzy/setup.bash`, а не замість нього
 
@@ -162,12 +151,12 @@ ros@ros:~/ros2_stud_bilotil_ws$
 | Topic                           | `/stud_bilotil/message` |
 | Тип повідомлення                | `std_msgs/msg/String`   |
 | Частота | 2 Hz (таймер 500 мс)  |                         |
-| Формат повідомлення | `Bilotil  | Message #N`             |
+| Формат повідомлення             | `Bilotil  | Message #N` |
 
 ### Код `student_publisher.hpp`
 
 ```cpp
-<!-- #ifndef STUDENT_PUBLISHER_HPP_
+#ifndef STUDENT_PUBLISHER_HPP_
 #define STUDENT_PUBLISHER_HPP_
 
 #include "rclcpp/rclcpp.hpp"
@@ -183,13 +172,13 @@ private:
     size_t counter_;
 };
 
-#endif -->
+#endif 
 ```
 
 ### Код `student_publisher.cpp`
 
 ```cpp
-<!-- #include "stud_bilotil_cpp_pkg/student_publisher.hpp"
+#include "stud_bilotil_cpp_pkg/student_publisher.hpp"
 
 StudentPublisher::StudentPublisher() : Node("stud_bilotil_publisher"), counter_(0) {
     publisher_ = this->create_publisher<std_msgs::msg::String>("/stud_bilotil/message", 10);
@@ -205,26 +194,26 @@ void StudentPublisher::timer_callback() {
     RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
     publisher_->publish(message);
     counter_++;
-} -->
+} 
 ```
 
 ### Код `main.cpp`
 
 ```cpp
-<!-- #include "stud_bilotil_cpp_pkg/student_publisher.hpp"
+#include "stud_bilotil_cpp_pkg/student_publisher.hpp"
 
 int main(int argc, char * argv[]) {
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<StudentPublisher>());
     rclcpp::shutdown();
     return 0;
-} -->
+} 
 ```
 
 ### Код `CMakeLists.txt`
 
 ```cmake
-<!-- cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.8)
 project(stud_bilotil_cpp_pkg)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -252,7 +241,7 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-ament_package() -->
+ament_package()
 ```
 
 ### Перевірка запуску
@@ -267,7 +256,7 @@ $ ros2 run stud_bilotil_cpp_pkg stud_bilotil_publisher
 [INFO] [timestamp] [stud_bilotil_publisher]: Publishing: 'Bilotil | Message #2'
 ```
 
-<!-- ![Експеримент з publisher](publisher.png) -->
+![Експеримент з publisher](publisher.png)
 
 ---
 
@@ -278,7 +267,7 @@ $ ros2 run stud_bilotil_cpp_pkg stud_bilotil_publisher
 ### Код `student_subscriber.py`
 
 ```python
-<!-- import rclpy
+import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
@@ -304,13 +293,13 @@ def main(args=None):
     rclpy.shutdown()
 
 if __name__ == '__main__':
-    main() -->
+    main() 
 ```
 
 ### Код `setup.py`
 
 ```python
-<!-- from setuptools import find_packages, setup
+from setuptools import find_packages, setup
 
 package_name = 'stud_bilotil_py_pkg'
 
@@ -336,7 +325,7 @@ setup(
             'stud_bilotil_temperature_monitor = stud_bilotil_py_pkg.temperature_monitor:main',
         ],
     },
-) -->
+)
 ```
 
 ### Перевірка (Publisher + Subscriber одночасно, два різні термінали)
@@ -356,7 +345,7 @@ $ ros2 run stud_bilotil_py_pkg stud_bilotil_subscriber
 [INFO] [timestamp] [stud_bilotil_subscriber]: I heard: "Bilotil | Message #2"
 ```
 
-<!-- ![Експеримент з publisher/subscriber](publisher-subscriber.png) -->
+![Експеримент з publisher/subscriber](publisher-subscriber.png)
 
 ---
 
