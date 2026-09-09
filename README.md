@@ -1,16 +1,13 @@
 # Самостійна робота 1. ROS 2: workspace, ООП-nodes та ESP32 через micro-ROS
 
 **Студент:** Artem Bilotil
-**Група:** ← ВСТАВТЕ СВОЮ ГРУПУ
-**Дата виконання:** ← ВСТАВТЕ ДАТУ
+**Група:** Рт-2
 
 **Workspace:** `ros2_stud_bilotil_ws`
 **Пакет C++:** `stud_bilotil_cpp_pkg`
 **Пакет Python:** `stud_bilotil_py_pkg`
 **Основний topic (текстові повідомлення):** `/stud_bilotil/message`
 
-Цей звіт покриває Частину A і Частину B роботи (Етапи 1–7). Апаратна частина (ESP32,
-micro-ROS, Temperature Monitor) буде додана окремо після виконання Етапів 8–12.
 
 ---
 
@@ -31,8 +28,6 @@ micro-ROS, Temperature Monitor) буде додана окремо після в
 ---
 
 ## 1. Правило іменування
-
-Усі об'єкти в роботі названі за прізвищем студента (`bilotil`):
 
 | Об'єкт | Ім'я |
 |---|---|
@@ -86,9 +81,15 @@ $ echo $AMENT_PREFIX_PATH
 /home/ros/ros2_stud_bilotil_ws/install/my_test_pkg:/opt/ros/jazzy
 ```
 
-<!-- ВСТАВТЕ СЮДИ СВІЙ ВЛАСНИЙ ВИВІД printenv | grep ROS та echo $AMENT_PREFIX_PATH,
-     знятий у НОВОМУ терміналі (без ручного джерела source), щоб показати, що
-     сорсинг у ~/.bashrc працює автоматично -->
+<!-- ros@ros:~/ros2_stud_bilotil_ws$ printenv | grep ROS
+ROS_VERSION=2
+ROS_PYTHON_VERSION=3
+ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET
+ROS_DISTRO=jazzy
+ros@ros:~/ros2_stud_bilotil_ws$ echo $AMENT_PREFIX_PATH
+/home/ros/ros2_stud_bilotil_ws/install/stud_bilotil_py_pkg:/home/ros/ros2_stud_bilotil_ws/install/stud_bilotil_cpp_pkg:/opt/ros/jazzy
+ros@ros:~/ros2_stud_bilotil_ws$ 
+ -->
 
 ### Чому `install/setup.bash` підключається після `/opt/ros/jazzy/setup.bash`, а не замість нього
 
@@ -106,10 +107,10 @@ $ echo $AMENT_PREFIX_PATH
 
 Створено два пакети у `~/ros2_stud_bilotil_ws/src/`:
 
-| Package | Build type | Залежності |
-|---|---|---|
-| `stud_bilotil_cpp_pkg` | `ament_cmake` | `rclcpp`, `std_msgs` |
-| `stud_bilotil_py_pkg` | `ament_python` | `rclpy`, `std_msgs` |
+| Package                | Build type    | Залежності          |
+|------------------------|---------------|---------------------|
+| `stud_bilotil_cpp_pkg` | `ament_cmake` | `rclcpp`, `std_msgs`|
+| `stud_bilotil_py_pkg`  | `ament_python`| `rclpy`, `std_msgs` |
 
 ### Структура C++ package
 
@@ -142,14 +143,13 @@ stud_bilotil_py_pkg/
 ### Перевірка (наявність обох пакетів)
 
 ```text
-$ source ~/ros2_stud_bilotil_ws/install/setup.bash
-$ ros2 pkg list | grep bilotil
+ros@ros:~/ros2_stud_bilotil_ws$ ros2 pkg list | grep bilotil
 stud_bilotil_cpp_pkg
 stud_bilotil_py_pkg
+ros@ros:~/ros2_stud_bilotil_ws$ 
+
 ```
 
-<!-- Якщо у вас є власний, більш свіжий вивід ros2 pkg list | grep bilotil —
-     вставте його сюди замість наведеного вище -->
 
 ---
 
@@ -157,38 +157,102 @@ stud_bilotil_py_pkg
 
 **Node:** `stud_bilotil_publisher`
 
-| Параметр | Значення |
-|---|---|
-| Topic | `/stud_bilotil/message` |
-| Тип повідомлення | `std_msgs/msg/String` |
-| Частота | 2 Hz (таймер 500 мс) |
-| Формат повідомлення | `Bilotil | Message #N` |
+| Параметр                        | Значення                |
+|---------------------------------|-------------------------|
+| Topic                           | `/stud_bilotil/message` |
+| Тип повідомлення                | `std_msgs/msg/String`   |
+| Частота | 2 Hz (таймер 500 мс)  |                         |
+| Формат повідомлення | `Bilotil  | Message #N`             |
 
 ### Код `student_publisher.hpp`
 
 ```cpp
-<!-- ВСТАВТЕ СЮДИ ПОВНИЙ ВМІСТ ФАЙЛУ
-     ~/ros2_stud_bilotil_ws/src/stud_bilotil_cpp_pkg/include/stud_bilotil_cpp_pkg/student_publisher.hpp -->
+<!-- #ifndef STUDENT_PUBLISHER_HPP_
+#define STUDENT_PUBLISHER_HPP_
+
+#include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/string.hpp"
+
+class StudentPublisher : public rclcpp::Node {
+public:
+    StudentPublisher();
+private:
+    void timer_callback();
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    size_t counter_;
+};
+
+#endif -->
 ```
 
 ### Код `student_publisher.cpp`
 
 ```cpp
-<!-- ВСТАВТЕ СЮДИ ПОВНИЙ ВМІСТ ФАЙЛУ
-     ~/ros2_stud_bilotil_ws/src/stud_bilotil_cpp_pkg/src/student_publisher.cpp -->
+<!-- #include "stud_bilotil_cpp_pkg/student_publisher.hpp"
+
+StudentPublisher::StudentPublisher() : Node("stud_bilotil_publisher"), counter_(0) {
+    publisher_ = this->create_publisher<std_msgs::msg::String>("/stud_bilotil/message", 10);
+    timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(500),
+        std::bind(&StudentPublisher::timer_callback, this)
+    );
+}
+
+void StudentPublisher::timer_callback() {
+    auto message = std_msgs::msg::String();
+    message.data = "Bilotil | Message #" + std::to_string(counter_);
+    RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+    publisher_->publish(message);
+    counter_++;
+} -->
 ```
 
 ### Код `main.cpp`
 
 ```cpp
-<!-- ВСТАВТЕ СЮДИ ПОВНИЙ ВМІСТ ФАЙЛУ
-     ~/ros2_stud_bilotil_ws/src/stud_bilotil_cpp_pkg/src/main.cpp -->
+<!-- #include "stud_bilotil_cpp_pkg/student_publisher.hpp"
+
+int main(int argc, char * argv[]) {
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<StudentPublisher>());
+    rclcpp::shutdown();
+    return 0;
+} -->
 ```
 
 ### Код `CMakeLists.txt`
 
 ```cmake
-<!-- ВСТАВТЕ СЮДИ ПОВНИЙ ВМІСТ ФАЙЛУ CMakeLists.txt пакета stud_bilotil_cpp_pkg -->
+<!-- cmake_minimum_required(VERSION 3.8)
+project(stud_bilotil_cpp_pkg)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+
+include_directories(include)
+
+add_executable(stud_bilotil_publisher
+  src/student_publisher.cpp
+  src/main.cpp
+)
+
+ament_target_dependencies(stud_bilotil_publisher
+  rclcpp
+  std_msgs
+)
+
+install(TARGETS
+  stud_bilotil_publisher
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+ament_package() -->
 ```
 
 ### Перевірка запуску
@@ -203,8 +267,7 @@ $ ros2 run stud_bilotil_cpp_pkg stud_bilotil_publisher
 [INFO] [timestamp] [stud_bilotil_publisher]: Publishing: 'Bilotil | Message #2'
 ```
 
-<!-- ВСТАВТЕ СЮДИ СКРІНШОТ ТЕРМІНАЛУ З ЛОГАМИ PUBLISHER-А
-     (наприклад: ![Publisher log](docs/publisher_log.png)) -->
+<!-- ![Експеримент з publisher](publisher.png) -->
 
 ---
 
@@ -215,14 +278,65 @@ $ ros2 run stud_bilotil_cpp_pkg stud_bilotil_publisher
 ### Код `student_subscriber.py`
 
 ```python
-<!-- ВСТАВТЕ СЮДИ ПОВНИЙ ВМІСТ ФАЙЛУ
-     ~/ros2_stud_bilotil_ws/src/stud_bilotil_py_pkg/stud_bilotil_py_pkg/student_subscriber.py -->
+<!-- import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+
+class StudentSubscriber(Node):
+    def __init__(self):
+        super().__init__('stud_bilotil_subscriber')
+        self.subscription = self.create_subscription(
+            String,
+            '/stud_bilotil/message',
+            self.listener_callback,
+            10
+        )
+        self.subscription  # Запобігає видаленню змінної збирачем сміття
+
+    def listener_callback(self, msg):
+        self.get_logger().info(f'I heard: "{msg.data}"')
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = StudentSubscriber()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main() -->
 ```
 
 ### Код `setup.py`
 
 ```python
-<!-- ВСТАВТЕ СЮДИ ПОВНИЙ ВМІСТ ФАЙЛУ setup.py пакета stud_bilotil_py_pkg -->
+<!-- from setuptools import find_packages, setup
+
+package_name = 'stud_bilotil_py_pkg'
+
+setup(
+    name=package_name,
+    version='0.0.0',
+    packages=find_packages(exclude=['test']),
+    data_files=[
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='ros',
+    maintainer_email='ros@todo.todo',
+    description='Python package for ROS 2 lab',
+    license='TODO: License declaration',
+    tests_require=['pytest'],
+    entry_points={
+        'console_scripts': [
+            'stud_bilotil_subscriber = stud_bilotil_py_pkg.student_subscriber:main',
+            'stud_bilotil_temperature_monitor = stud_bilotil_py_pkg.temperature_monitor:main',
+        ],
+    },
+) -->
 ```
 
 ### Перевірка (Publisher + Subscriber одночасно, два різні термінали)
@@ -242,8 +356,7 @@ $ ros2 run stud_bilotil_py_pkg stud_bilotil_subscriber
 [INFO] [timestamp] [stud_bilotil_subscriber]: I heard: "Bilotil | Message #2"
 ```
 
-<!-- ВСТАВТЕ СЮДИ СКРІНШОТ ДВОХ ТЕРМІНАЛІВ ПОРУЧ (publisher зліва, subscriber справа),
-     де видно, що номери повідомлень збігаються -->
+<!-- ![Експеримент з publisher/subscriber](publisher-subscriber.png) -->
 
 ---
 
@@ -308,16 +421,14 @@ string data
 
 **6. Читання повідомлень з topic** — `ros2 topic echo /stud_bilotil/message`
 ```text
-data: 'Bilotil | Message #763'
+ros@ros:~/ros2_stud_bilotil_ws$ ros2 topic echo /stud_bilotil/message
+data: 'Bilotil | Message #10653'
 ---
-data: 'Bilotil | Message #764'
+data: 'Bilotil | Message #10654'
 ---
-data: 'Bilotil | Message #765'
+data: 'Bilotil | Message #10655'
 ---
-data: 'Bilotil | Message #766'
----
-data: 'Bilotil | Message #767'
----
+
 ```
 *(зупинено вручну через Ctrl+C)*
 
@@ -339,8 +450,6 @@ average rate: 2.000
 коливаються в межах кількох мілісекунд, що є нормальним джерелом джитера в
 непристосованому до real-time середовищі ОС.
 
-<!-- Якщо у вас частота суттєво відрізняється від 2 Hz — за вимогою методички
-     потрібно вказати, у чому була причина і як ви її усунули -->
 
 ---
 
