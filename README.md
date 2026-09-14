@@ -441,3 +441,228 @@ average rate: 2.000
 
 
 ---
+
+## 8. Етап 6. Експеримент з трьома Subscribers
+
+Запущено три екземпляри одного й того самого Python-вузла без зміни його сирцевого коду, використовуючи ремапінг імені вузла (`--ros-args -r __node:=...`).
+
+### Одночасна робота 4 терміналів:
+![Робота 3 підписників та 1 паблішера](ROS 3 subscribers.jpg)
+
+### Детальна інформація про топік з 3 підписниками (`ros2 topic info /stud_bilotil/message --verbose`):
+```text
+Type: std_msgs/msg/String
+
+Publisher count: 1
+
+Node name: stud_bilotil_publisher
+Node namespace: /
+Topic type: std_msgs/msg/String
+Topic type hash: RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18
+Endpoint type: PUBLISHER
+GID: 01.0f.65.91.22.0c.93.1b.00.00.00.00.00.00.14.03
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Subscription count: 3
+
+Node name: stud_bilotil_subscriber_1
+Node namespace: /
+Topic type: std_msgs/msg/String
+Topic type hash: RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.65.91.99.0c.ad.33.00.00.00.00.00.00.13.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Node name: stud_bilotil_subscriber_2
+Node namespace: /
+Topic type: std_msgs/msg/String
+Topic type hash: RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.65.91.b4.0c.9e.f5.00.00.00.00.00.00.13.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Node name: stud_bilotil_subscriber_3
+Node namespace: /
+Topic type: std_msgs/msg/String
+Topic type hash: RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.65.91.cf.0c.06.8b.00.00.00.00.00.00.13.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+```
+
+### Відповіді на контрольні запитання Етапу 6:
+
+1. **Чому одне повідомлення доходить до всіх трьох nodes і скільки разів воно публікується?**  
+   Повідомлення публікується паблішером у мережний шар (DDS) **лише один раз**. Middleware ROS 2 (DDS) самостійно дублює і розсилає цей мережевий пакет усім 3 підписаним вузлам (архітектура 1-до-N).
+
+2. **У якій ситуації довелося б використати Service замість Topic?**  
+   Service (модель запит-відповідь) потрібен у ситуаціях, коли необхідна точкова адресація «один-до-одного» із підтвердженням виконання (наприклад, викликати функцію скидання лічильника, запитати конкретну конфігурацію або відправити команду на виконання конкретної дії).
+
+  ## 9. Етап 7. rqt та rqt_graph
+
+Графічна утиліта `rqt_graph` використовується для візуалізації обчислювального графа (Computational Graph) ROS 2 у реальному часі.
+
+### Загальний вигляд графа (усі 4 вузли активні):
+![Повний граф rqt_graph](rqt_graph_full.png)
+
+---
+
+### Результати експерименту та аналіз змін у графі
+
+#### Крок 1. Зупинка вузла `stud_bilotil_subscriber_3`
+* **Що саме зникло:** Зник овал вузла `/stud_bilotil_subscriber_3` та одна з трьох вихідних стрілок, що вела до нього від топіка.
+* **Що залишилося:** Овал паблішера `/stud_bilotil_publisher`, топік `/stud_bilotil/message` та вузли `subscriber_1` i `subscriber_2`.
+* **Скріншот:**
+![Граф без subscriber_3](rqt_no_sub3.png)
+
+#### Крок 3. Зупинка вузла `stud_bilotil_publisher`
+* **Що саме зникло:** Зник овал вузла `/stud_bilotil_publisher` та вхідна стрілка, яка вела від нього до топіка.
+* **Що залишилося:** Сам топік `/stud_bilotil/message` та три підписані вузли `subscriber_1`, `subscriber_2`, `subscriber_3` зі стрілками до них.
+* **Скріншот:**
+![Граф без publisher](rqt_no_pub.png)
+
+---
+
+### Чому в цих двох випадках результат такий і чому топік не зникає?
+
+1. **При зупинці `subscriber_3`:** Зникає лише конкретна нода-підписник і зв'язок із нею. Топік залишається, оскільки паблішер продовжує в нього мовити, а інші два підписники продовжують з нього читати.
+2. **При зупинці `publisher`:** Зникає нода-видавець і вхідна стрілка публікації. Проте сам прямокутник топіка `/stud_bilotil/message` **не зникає з графа**, тому що у ROS 2 підписники все ще залишаються зареєстрованими в графі (у DDS-метаданих) і очікують на дані.
+
+**Висновок про відмінність:** 
+В обох випадках зникає відповідна нода (node) та її стрілка (зв'язок). Проте топік (topic) зберігається в обох сценаріях, оскільки в системі залишається принаймні один активний endpoint (або publisher, або хоча б один subscriber).
+
+# 10. Етап 8. STM32 i температурний датчик DHT22
+
+## Інформація про датчик
+
+| Пункт | Що вказати / Значення |
+| :--- | :--- |
+| **Модель** | DHT22 (AM2302) |
+| **Живлення** | Напруга: 3.3V – 5.5V DC; Струм споживання: 1.0–1.5 мА (активний), 40–50 мкА (очікування) |
+| **Інтерфейс** | Single-Wire (цифровий однопровідний протокол з часовими інтервалами) |
+| **Діапазон** | Температура: від -40 °C до +80 °C (Вологість: 0–100% RH) |
+| **Точність** | Температура: ±0.5 °C (Вологість: ±2% RH) |
+| **Роздільна здатність** | 0.1 °C (0.1% RH) |
+| **Підключення** | **VCC** $\rightarrow$ `3.3V`<br>**DATA** $\rightarrow$ `PA1` (або довільний GPIO, ініціалізований як `DHT_22_Pin`) з зовнішнім/внутрішнім підтягуючим резистором 4.7–10 кОм до `3.3V`<br>**NC** $\rightarrow$ Не використовується<br>**GND** $\rightarrow$ `GND` |
+
+---
+
+## Програмна реалізація (STM32 HAL + USB CDC)
+
+Для мікросекундних затримок використовується апаратний таймер `TIM1` (`Prescaler = 95`, 1 тік = 1 мкс). Вивід даних здійснюється через **USB Virtual COM Port (CDC)**.
+
+### Основний фрагмент коду зчитування (`main.c`)
+
+```c
+#include "main.h"
+#include "usb_device.h"
+#include "usbd_cdc_if.h"
+#include <stdio.h>
+#include <string.h>
+
+extern TIM_HandleTypeDef htim1;
+char usb_buf[128];
+
+// Мікросекундна затримка через TIM1
+void delay_us(uint16_t us) {
+    __HAL_TIM_SET_COUNTER(&htim1, 0);
+    while (__HAL_TIM_GET_COUNTER(&htim1) < us);
+}
+
+// Запит до датчика DHT22
+uint8_t DHT22_Start(void) {
+    uint8_t Response = 0;
+    Set_Pin_Output(DHT_22_GPIO_Port, DHT_22_Pin);
+
+    HAL_GPIO_WritePin(DHT_22_GPIO_Port, DHT_22_Pin, GPIO_PIN_RESET);
+    delay_us(1200); // Стартовий імпульс 1.2 мс
+
+    HAL_GPIO_WritePin(DHT_22_GPIO_Port, DHT_22_Pin, GPIO_PIN_SET);
+    delay_us(30);
+
+    Set_Pin_Input(DHT_22_GPIO_Port, DHT_22_Pin);
+
+    delay_us(40);
+    if (!(HAL_GPIO_ReadPin(DHT_22_GPIO_Port, DHT_22_Pin))) {
+        delay_us(80);
+        if ((HAL_GPIO_ReadPin(DHT_22_GPIO_Port, DHT_22_Pin))) Response = 1;
+        else Response = 0;
+    }
+    while ((HAL_GPIO_ReadPin(DHT_22_GPIO_Port, DHT_22_Pin)));
+
+    return Response;
+}
+
+// Зчитування байта
+uint8_t DHT22_Read_Byte(void) {
+    uint8_t i = 0, j;
+    for (j = 0; j < 8; j++) {
+        while (!(HAL_GPIO_ReadPin(DHT_22_GPIO_Port, DHT_22_Pin)));
+        delay_us(40);
+        if (!(HAL_GPIO_ReadPin(DHT_22_GPIO_Port, DHT_22_Pin))) {
+            i &= ~(1 << (7 - j));
+        } else {
+            i |= (1 << (7 - j));
+            while ((HAL_GPIO_ReadPin(DHT_22_GPIO_Port, DHT_22_Pin)));
+        }
+    }
+    return i;
+}
+
+// Головний цикл
+while (1) {
+    if (DHT22_Start()) {
+        Rh_byte1 = DHT22_Read_Byte();
+        Rh_byte2 = DHT22_Read_Byte();
+        Temp_byte1 = DHT22_Read_Byte();
+        Temp_byte2 = DHT22_Read_Byte();
+        SUM = DHT22_Read_Byte();
+
+        if (SUM == ((Rh_byte1 + Rh_byte2 + Temp_byte1 + Temp_byte2) & 0xFF)) {
+            RAW_Humidity = (Rh_byte1 << 8) | Rh_byte2;
+            RAW_Temp = (Temp_byte1 << 8) | Temp_byte2;
+
+            int temp_int = RAW_Temp / 10;
+            int temp_dec = RAW_Temp % 10;
+            int hum_int = RAW_Humidity / 10;
+            int hum_dec = RAW_Humidity % 10;
+
+            snprintf(usb_buf, sizeof(usb_buf), "Temp: %d.%d C, Humidity: %d.%d %%\r\n", 
+                     temp_int, temp_dec, hum_int, hum_dec);
+            CDC_Transmit_FS((uint8_t*)usb_buf, strlen(usb_buf));
+        }
+    }
+    HAL_Delay(2000);
+}
+
+Результати роботи
+Вивід серійного монітору
+![Вивід серійного монітору](DHT22_SerialMonitor.png)
