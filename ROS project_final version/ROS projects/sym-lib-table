@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "ROS")(type "KiCad")(uri "${KIPRJMOD}/ROS.kicad_sym")(options "")(descr "ROS motor controller symbols"))
+)
